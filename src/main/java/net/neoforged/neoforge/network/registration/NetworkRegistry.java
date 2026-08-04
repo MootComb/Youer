@@ -388,6 +388,7 @@ public class NetworkRegistry {
             });
 
             // Negotiation failed. Disconnect the client.
+            /*
             if (!negotiationResult.success()) {
                 if (!negotiationResult.failureReasons().isEmpty()) {
                     listener.send(new ModdedNetworkSetupFailedPayload(negotiationResult.failureReasons()));
@@ -396,6 +397,7 @@ public class NetworkRegistry {
                 listener.disconnect(Component.translatable("multiplayer.disconnect.incompatible", "NeoForge %s".formatted(NeoForgeVersion.getVersion())));
                 return;
             }
+            */
             results.put(protocol, negotiationResult);
         }
 
