@@ -13,34 +13,66 @@ on:
   pull_request:
     branches: [ "1.21.1" ]
   workflow_dispatch:
-  
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-
+      contents: write
+    
     steps:
     - uses: actions/checkout@v6
+    
     - name: Set up JDK 21
       uses: actions/setup-java@v5
       with:
         java-version: '21'
         distribution: 'temurin'
-
-    # Configure Gradle for optimal use in GitHub Actions, including caching of downloaded dependencies.
-    # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
+    
+    - name: Fix SSL certificate for Create Mod repository
+      run: |
+        echo "Adding Create Mod repository with HTTP fallback"
+        echo "allprojects { repositories { maven { url = 'http://maven.createmod.net' } } }" >> build.gradle
+    
     - name: Setup Gradle
       run: |
         chmod +x ./gradlew
         ./gradlew setup
-
+    
     - name: Build with Gradle Wrapper
       run: ./gradlew youerJar
-
+    
+    - name: Get version
+      id: get_version
+      run: |
+        VERSION=$(grep "NeoForge version" build.gradle | head -1 | awk '{print $3}' || echo "1.21.1")
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "BUILD_DATE=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+    
+    - name: Find JAR file
+      id: find_jar
+      run: |
+        JAR_FILE=$(find projects/youer/build/libs/ -name "*-server.jar" | head -1)
+        echo "JAR_PATH=$JAR_FILE" >> $GITHUB_OUTPUT
+        echo "Found JAR: $JAR_FILE"
+    
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v6
       with:
         name: Youer-1.21.1-server
         path: projects/youer/build/libs/*-server.jar
+        retention-days: 30
+    
+    - name: Create Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/1.21.1'
+      uses: softprops/action-gh-release@v2
+      with:
+        name: Youer ${{ steps.get_version.outputs.VERSION }} Build ${{ github.run_number }}
+        tag_name: build-${{ github.run_number }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        files: |
+          ${{ steps.find_jar.outputs.JAR_PATH }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
