@@ -29,11 +29,6 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
     
-    - name: Fix SSL certificate for Create Mod repository
-      run: |
-        echo "Adding Create Mod repository with HTTP fallback"
-        echo "allprojects { repositories { maven { url = 'http://maven.createmod.net' } } }" >> build.gradle
-    
     - name: Setup Gradle
       run: |
         chmod +x ./gradlew
