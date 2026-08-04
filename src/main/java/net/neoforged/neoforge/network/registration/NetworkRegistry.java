@@ -277,21 +277,6 @@ public class NetworkRegistry {
             // Get the configuration channel for the packet.
             NetworkChannel channel = payloadSetup.getChannel(listener.protocol(), context.payloadId());
 
-            // Check if the channel should even be processed.
-            if (channel == null && !hasAdhocChannel(listener.protocol(), context.payloadId(), PacketFlow.SERVERBOUND)) {
-                LOGGER.warn("Received a modded payload {} with an unknown or unaccepted channel; disconnecting.", context.payloadId());
-                // listener.disconnect(Component.translatable("multiplayer.disconnect.incompatible", "NeoForge %s (No Channel for %s)".formatted(NeoForgeVersion.getVersion(), context.payloadId().toString())));
-                return;
-            }
-
-            PayloadRegistration registration = PAYLOAD_REGISTRATIONS.get(listener.protocol()).get(context.payloadId());
-            if (registration == null) {
-                LOGGER.error("Received a modded payload {} with no registration; disconnecting.", context.payloadId());
-                // listener.disconnect(Component.translatable("multiplayer.disconnect.incompatible", "NeoForge %s (No Handler for %s)".formatted(NeoForgeVersion.getVersion(), context.payloadId().toString())));
-                dumpStackToLog(); // This case is only likely when handling packets without serialization, i.e. from a compound listener, so this can help debug why.
-                return;
-            }
-
             registration.handler().handle(packet.payload(), context);
         } else {
             LOGGER.error("Received a modded payload {} while not in the configuration or play phase; disconnecting.", context.payloadId());
@@ -322,21 +307,6 @@ public class NetworkRegistry {
         if (PAYLOAD_REGISTRATIONS.containsKey(listener.protocol())) {
             // Get the configuration channel for the packet.
             NetworkChannel channel = payloadSetup.getChannel(listener.protocol(), context.payloadId());
-
-            // Check if the channel should even be processed.
-            if (channel == null && !hasAdhocChannel(listener.protocol(), packet.payload().type().id(), PacketFlow.CLIENTBOUND)) {
-                LOGGER.warn("Received a modded payload with an unknown or unaccepted channel; disconnecting.");
-                // listener.getConnection().disconnect(Component.translatable("multiplayer.disconnect.incompatible", "NeoForge %s (No Channel for %s)".formatted(NeoForgeVersion.getVersion(), context.payloadId().toString())));
-                return;
-            }
-
-            PayloadRegistration registration = PAYLOAD_REGISTRATIONS.get(listener.protocol()).get(context.payloadId());
-            if (registration == null) {
-                LOGGER.error("Received a modded payload with no registration; disconnecting.");
-                // listener.getConnection().disconnect(Component.translatable("multiplayer.disconnect.incompatible", "NeoForge %s (No Handler for %s)".formatted(NeoForgeVersion.getVersion(), context.payloadId().toString())));
-                dumpStackToLog(); // This case is only likely when handling packets without serialization, i.e. from a compound listener, so this can help debug why.
-                return;
-            }
 
             registration.handler().handle(packet.payload(), context);
         } else {
