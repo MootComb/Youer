@@ -474,7 +474,7 @@ public class NetworkRegistry {
                 return;
             }
 
-            throw new UnsupportedOperationException("Payload %s may not be sent to the client!".formatted(payload.type().id()));
+            // throw new UnsupportedOperationException("Payload %s may not be sent to the client!".formatted(payload.type().id()));
         }
     }
 
