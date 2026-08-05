@@ -276,8 +276,13 @@ public class NetworkRegistry {
         if (PAYLOAD_REGISTRATIONS.containsKey(listener.protocol())) {
             // Get the configuration channel for the packet.
             NetworkChannel channel = payloadSetup.getChannel(listener.protocol(), context.payloadId());
-
-            registration.handler().handle(packet.payload(), context);
+            // Get the registration from the map
+            PayloadRegistration<?> registration = PAYLOAD_REGISTRATIONS.get(listener.protocol()).get(context.payloadId());
+            if (registration != null) {
+                registration.handler().handle(packet.payload(), context);
+            } else {
+                LOGGER.warn("No registration found for payload: {}", context.payloadId());
+            }
         } else {
             LOGGER.error("Received a modded payload {} while not in the configuration or play phase; disconnecting.", context.payloadId());
             listener.disconnect(Component.translatable("multiplayer.disconnect.incompatible", "NeoForge %s (Invalid Protocol %s)".formatted(NeoForgeVersion.getVersion(), listener.protocol().name())));
@@ -307,8 +312,13 @@ public class NetworkRegistry {
         if (PAYLOAD_REGISTRATIONS.containsKey(listener.protocol())) {
             // Get the configuration channel for the packet.
             NetworkChannel channel = payloadSetup.getChannel(listener.protocol(), context.payloadId());
-
-            registration.handler().handle(packet.payload(), context);
+            // Get the registration from the map
+            PayloadRegistration<?> registration = PAYLOAD_REGISTRATIONS.get(listener.protocol()).get(context.payloadId());
+            if (registration != null) {
+                registration.handler().handle(packet.payload(), context);
+            } else {
+                LOGGER.warn("No registration found for payload: {}", context.payloadId());
+            }
         } else {
             LOGGER.error("Received a modded payload while not in the configuration or play phase. Disconnecting.");
             listener.getConnection().disconnect(Component.translatable("multiplayer.disconnect.incompatible", "NeoForge %s (Invalid Protocol %s)".formatted(NeoForgeVersion.getVersion(), listener.protocol().name())));
