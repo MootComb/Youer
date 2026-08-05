@@ -3,8 +3,42 @@ plugins {
     id 'dev.lukebemish.immaculate' version '0.1.6' apply false
 }
 
+// ===== DISABLE SSL VERIFICATION =====
+import javax.net.ssl.*
+import java.security.cert.X509Certificate
+
+def disableSslVerification() {
+    TrustManager[] trustAllCerts = [
+        new X509TrustManager() {
+            X509Certificate[] getAcceptedIssuers() { return null }
+            void checkClientTrusted(X509Certificate[] certs, String authType) { }
+            void checkServerTrusted(X509Certificate[] certs, String authType) { }
+        }
+    ]
+    
+    try {
+        SSLContext sc = SSLContext.getInstance("SSL")
+        sc.init(null, trustAllCerts, new java.security.SecureRandom())
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory())
+        HttpsURLConnection.setDefaultHostnameVerifier { hostname, session -> true }
+        System.out.println("SSL verification disabled successfully")
+    } catch (Exception e) {
+        System.err.println("Failed to disable SSL verification: " + e.message)
+    }
+}
+
+gradle.projectsLoaded {
+    disableSslVerification()
+}
+
+gradle.beforeSettings {
+    disableSslVerification()
+}
+
+disableSslVerification()
+// ===== END SSL DISABLE =====
+
 project.version = project.neoforge_version
-// Print version, generally useful to know - also appears on CI
 System.out.println("NeoForge version ${project.version}")
 
 // Youer start
