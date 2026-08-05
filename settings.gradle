@@ -30,7 +30,7 @@ dependencyResolutionManagement {
         maven { url = 'https://mohistmc.github.io/maven/'}
         maven { url = "https://repo.papermc.io/repository/maven-public/" }
         maven { url = "https://jitpack.io" }
-        maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
+        maven { url = "http://maven.createmod.net" } // Changed from https to http
         maven {
             name = "RyanHCode Maven"
             url = "https://maven.ryanhcode.dev/releases"
