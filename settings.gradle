@@ -30,9 +30,16 @@ dependencyResolutionManagement {
         maven { url = 'https://mohistmc.github.io/maven/'}
         maven { url = "https://repo.papermc.io/repository/maven-public/" }
         maven { url = "https://jitpack.io" }
+        // Create Maven - use HTTPS with proper URL
         maven {
+            name = "Create Maven"
+            url = "https://maven.createmod.net"
+        }
+        // Fallback to HTTP if HTTPS fails
+        maven {
+            name = "Create Maven HTTP"
             url = "http://maven.createmod.net"
-            allowInsecureProtocol = true  // Add this line
+            allowInsecureProtocol = true
         }
         maven {
             name = "RyanHCode Maven"
@@ -43,6 +50,7 @@ dependencyResolutionManagement {
             url = "https://maven.minecraftforge.net"
         }
         maven {
+            name = "Modrinth"
             url = "https://api.modrinth.com/maven"
         }
     }
