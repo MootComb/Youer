@@ -279,7 +279,7 @@ public class NetworkRegistry {
             // Get the registration from the map
             PayloadRegistration<?> registration = PAYLOAD_REGISTRATIONS.get(listener.protocol()).get(context.payloadId());
             if (registration != null) {
-                registration.handler().handle(packet.payload(), context);
+                ((PayloadRegistration<CustomPacketPayload>) registration).handler().handle(packet.payload(), context);
             } else {
                 LOGGER.warn("No registration found for payload: {}", context.payloadId());
             }
@@ -315,7 +315,7 @@ public class NetworkRegistry {
             // Get the registration from the map
             PayloadRegistration<?> registration = PAYLOAD_REGISTRATIONS.get(listener.protocol()).get(context.payloadId());
             if (registration != null) {
-                registration.handler().handle(packet.payload(), context);
+                ((PayloadRegistration<CustomPacketPayload>) registration).handler().handle(packet.payload(), context);
             } else {
                 LOGGER.warn("No registration found for payload: {}", context.payloadId());
             }
