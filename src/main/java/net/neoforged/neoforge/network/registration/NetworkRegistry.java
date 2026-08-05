@@ -404,10 +404,10 @@ public class NetworkRegistry {
                     List.of());
 
             //Negotiation failed. Disconnect the client.
-            if (!negotiationResult.success()) {
-                listener.disconnect(Component.literal(YouerConfig.getMessage_require_neoforge()));
-                return false;
-            }
+            // if (!negotiationResult.success()) {
+            //     listener.disconnect(Component.literal(YouerConfig.getMessage_require_neoforge()));
+            //     return false;
+            // }
         }
 
         NetworkFilters.injectIfNecessary(listener.getConnection());
@@ -546,10 +546,10 @@ public class NetworkRegistry {
                             .toList());
 
             // Negotiation failed. Disconnect the client.
-            if (!negotiationResult.success()) {
-                listener.getConnection().disconnect(Component.literal(I18n.as("neoforge.network.negotiation.failure.vanilla.server.not_supported", NeoForgeVersion.getVersion())));
-                return;
-            }
+            // if (!negotiationResult.success()) {
+            //     listener.getConnection().disconnect(Component.literal(I18n.as("neoforge.network.negotiation.failure.vanilla.server.not_supported", NeoForgeVersion.getVersion())));
+            //     return;
+            // }
         }
 
         // We are on the client, connected to a vanilla server, make sure we don't have any extended enums that may be sent to the server
