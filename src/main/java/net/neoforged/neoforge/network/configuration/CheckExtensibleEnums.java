@@ -48,110 +48,10 @@ public record CheckExtensibleEnums(ServerConfigurationPacketListener listener) i
 
     @Override
     public void start(Consumer<Packet<?>> packetSender) {
-        if (listener.getConnection().isMemoryConnection()) {
-            listener.finishCurrentTask(TYPE);
-            return;
-        }
-
-        Map<String, EnumEntry> enumEntries = getEnumEntries();
-        if (listener.getConnectionType().isOther()) {
-            List<EnumEntry> extendedClientboundEnums = enumEntries.values()
-                    .stream()
-                    .filter(entry -> entry.isClientbound() && entry.isExtended())
-                    .toList();
-            if (!extendedClientboundEnums.isEmpty()) {
-                // Use plain components as vanilla connections will be missing our translation keys
-                listener.disconnect(Component.literal("This server does not support vanilla clients as it has extended enums used in clientbound networking"));
-            } else {
-                listener.finishCurrentTask(TYPE);
-            }
-            return;
-        }
-
-        packetSender.accept(new ExtensibleEnumDataPayload(enumEntries).toVanillaClientbound());
+        listener.finishCurrentTask(TYPE);
     }
 
     public static void handleClientboundPayload(ExtensibleEnumDataPayload payload, IPayloadContext context) {
-        Map<String, EnumEntry> localEnumEntries = getEnumEntries();
-        Map<String, EnumEntry> remoteEnumEntries = payload.enumEntries();
-
-        Map<String, Mismatch> mismatched = new HashMap<>();
-        for (String className : Sets.union(localEnumEntries.keySet(), remoteEnumEntries.keySet())) {
-            EnumEntry localEntry = localEnumEntries.get(className);
-            EnumEntry remoteEntry = remoteEnumEntries.get(className);
-            if ((localEntry == null && remoteEntry.isExtended()) || (remoteEntry == null && localEntry.isExtended())) {
-                mismatched.put(className, Mismatch.EXTENSIBILITY);
-                continue;
-            }
-
-            if ((localEntry == null || !localEntry.isExtended()) && (remoteEntry == null || !remoteEntry.isExtended())) {
-                continue;
-            }
-
-            if (localEntry.networkCheck != remoteEntry.networkCheck) {
-                mismatched.put(className, Mismatch.NETWORK_CHECK);
-                continue;
-            }
-
-            if (localEntry.isExtended() != remoteEntry.isExtended()) {
-                mismatched.put(className, Mismatch.EXTENSION);
-                continue;
-            }
-
-            ExtensionData localData = localEntry.data.orElseThrow();
-            ExtensionData remoteData = remoteEntry.data.orElseThrow();
-            if (localData.vanillaCount != remoteData.vanillaCount || localData.totalCount != remoteData.totalCount) {
-                mismatched.put(className, Mismatch.ENTRY_COUNT);
-                continue;
-            }
-
-            List<String> localValues = localData.entries;
-            List<String> remoteValues = remoteData.entries;
-            for (int i = 0; i < localData.totalCount - localData.vanillaCount; i++) {
-                if (!localValues.get(i).equals(remoteValues.get(i))) {
-                    mismatched.put(className, Mismatch.ENTRY_MISMATCH);
-                    break;
-                }
-            }
-        }
-
-        if (!mismatched.isEmpty()) {
-            context.disconnect(Component.translatable("neoforge.network.extensible_enums.enum_entry_mismatch"));
-            StringBuilder message = new StringBuilder("The configuration or set of values added to extensible enums on the client and server do not match");
-            for (Map.Entry<String, Mismatch> entry : mismatched.entrySet()) {
-                String enumClass = entry.getKey();
-                message.append("\n").append(enumClass).append(": ");
-                switch (entry.getValue()) {
-                    case EXTENSIBILITY -> {
-                        if (remoteEnumEntries.containsKey(enumClass)) {
-                            message.append("Enum is extensible on the server but not on the client");
-                        } else {
-                            message.append("Enum is extensible on the client but not on the server");
-                        }
-                    }
-                    case NETWORK_CHECK -> message.append("Mismatched NetworkCheck (server: ")
-                            .append(remoteEnumEntries.get(enumClass).networkCheck)
-                            .append(", client: ")
-                            .append(localEnumEntries.get(enumClass).networkCheck)
-                            .append(")");
-                    case EXTENSION -> {
-                        if (remoteEnumEntries.get(enumClass).isExtended()) {
-                            message.append("Enum has additional entries on the server but not on the client");
-                        } else {
-                            message.append("Enum has additional entries on the client but not on the server");
-                        }
-                    }
-                    case ENTRY_COUNT, ENTRY_MISMATCH -> message.append("Set of entries does not match (server: ")
-                            .append(remoteEnumEntries.get(enumClass).data.orElseThrow().entries)
-                            .append(", client: ")
-                            .append(localEnumEntries.get(enumClass).data.orElseThrow().entries)
-                            .append(")");
-                }
-            }
-            LOGGER.warn(message.toString());
-            return;
-        }
-
         context.reply(ExtensibleEnumAcknowledgePayload.INSTANCE);
     }
 
@@ -160,11 +60,6 @@ public record CheckExtensibleEnums(ServerConfigurationPacketListener listener) i
     }
 
     public static boolean handleVanillaServerConnection(ClientConfigurationPacketListener listener) {
-        Collection<EnumEntry> enumEntries = getEnumEntries().values();
-        if (enumEntries.stream().anyMatch(entry -> entry.isServerbound() && entry.isExtended())) {
-            listener.disconnect(Component.translatable("neoforge.network.extensible_enums.no_vanilla_server"));
-            return false;
-        }
         return true;
     }
 
