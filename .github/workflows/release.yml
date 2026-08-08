@@ -40,21 +40,27 @@ jobs:
     - name: Get version
       id: get_version
       run: |
-        VERSION=$(grep "NeoForge version" build.gradle | head -1 | awk '{print $3}' || echo "1.21.1")
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        if [ -f "gradle.properties" ]; then
+          VERSION=$(grep "mod_version" gradle.properties | cut -d'=' -f2 | tr -d ' ' || echo "1.21.1")
+        else
+          VERSION=$(grep -E "version\s*=\s*['\"]" build.gradle | head -1 | sed -E "s/.*version\s*=\s*['\"]?([^'\"]+)['\"]?.*/\1/" || echo "1.21.1")
+        fi
+        echo "VERSION=${VERSION:-1.21.1}" >> $GITHUB_OUTPUT
         echo "BUILD_DATE=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        echo "RUN_NUMBER=${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
     
     - name: Find JAR file
       id: find_jar
       run: |
         JAR_FILE=$(find projects/youer/build/libs/ -name "*-server.jar" | head -1)
         echo "JAR_PATH=$JAR_FILE" >> $GITHUB_OUTPUT
+        echo "JAR_NAME=$(basename $JAR_FILE)" >> $GITHUB_OUTPUT
         echo "Found JAR: $JAR_FILE"
     
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v6
       with:
-        name: Youer-1.21.1-server
+        name: Youer-${{ steps.get_version.outputs.VERSION }}-server
         path: projects/youer/build/libs/*-server.jar
         retention-days: 30
     
@@ -62,8 +68,8 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/1.21.1'
       uses: softprops/action-gh-release@v2
       with:
-        name: Youer ${{ steps.get_version.outputs.VERSION }} Build ${{ github.run_number }}
-        tag_name: build-${{ github.run_number }}
+        name: "Youer v${{ steps.get_version.outputs.VERSION }} (Build #${{ github.run_number }})"
+        tag_name: "build-${{ github.run_number }}"
         draft: false
         prerelease: false
         generate_release_notes: true
