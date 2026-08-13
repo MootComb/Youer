@@ -7,6 +7,7 @@ on:
 
 env:
   TARGET_WORKFLOW: 'release.yml'
+  TRIGGER_ONLY_ON_CHANGES: 'true'  # Control variable: set to 'false' to always trigger
 
 jobs:
   sync:
@@ -111,7 +112,17 @@ jobs:
     if: needs.sync.outputs.pushed == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Check if trigger is enabled
+        id: check-trigger
+        run: |
+          if [ "${{ env.TRIGGER_ONLY_ON_CHANGES }}" == "true" ]; then
+            echo "trigger_enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "trigger_enabled=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Trigger release workflow
+        if: steps.check-trigger.outputs.trigger_enabled == 'true'
         uses: actions/github-script@v7
         with:
           script: |
