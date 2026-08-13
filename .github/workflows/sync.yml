@@ -1,0 +1,124 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+env:
+  TARGET_WORKFLOW: 'release.yml'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    outputs:
+      pushed: ${{ steps.check-push.outputs.pushed }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Get upstream repository info
+        id: get-upstream
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: repo } = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            if (repo.fork && repo.parent) {
+              core.setOutput('upstream_repo', repo.parent.full_name);
+              core.setOutput('upstream_branch', repo.parent.default_branch);
+            } else {
+              core.setOutput('upstream_repo', context.repo.owner + '/' + context.repo.repo);
+              core.setOutput('upstream_branch', repo.default_branch);
+            }
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Add remote repository as upstream
+        run: |
+          git remote add upstream https://github.com/${{ steps.get-upstream.outputs.upstream_repo }}
+          git fetch upstream ${{ steps.get-upstream.outputs.upstream_branch }}
+      
+      - name: Merge from remote repository (keep our files on conflicts)
+        id: merge
+        run: |
+          echo "🔄 Syncing from ${{ steps.get-upstream.outputs.upstream_repo }}:${{ steps.get-upstream.outputs.upstream_branch }} to current repository..."
+          
+          if git merge --no-commit --no-ff upstream/${{ steps.get-upstream.outputs.upstream_branch }}; then
+            echo "✅ Merge successful, no conflicts"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Conflicts detected! Keeping our files..."
+            
+            CONFLICT_FILES=$(git diff --name-only --diff-filter=U)
+            
+            if [ -z "$CONFLICT_FILES" ]; then
+              echo "❌ No conflicted files found, but merge failed"
+              git merge --abort
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            for file in $CONFLICT_FILES; do
+              echo "  🛡️ Keeping our file: $file"
+              git checkout --ours "$file" 2>/dev/null || true
+              git add "$file"
+            done
+            
+            echo "✅ Conflicts resolved in favor of our files"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Commit and push changes
+        if: steps.merge.outputs.has_changes == 'true'
+        id: push
+        run: |
+          if git diff --cached --quiet; then
+            echo "ℹ️ No changes to commit"
+            echo "pushed=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "Sync: merged from ${{ steps.get-upstream.outputs.upstream_repo }}:${{ steps.get-upstream.outputs.upstream_branch }} $(date -u '+%Y-%m-%d %H:%M:%S')"
+            git push origin ${{ github.ref_name }}
+            echo "✅ Changes pushed successfully!"
+            echo "pushed=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Set output
+        id: check-push
+        run: |
+          if [ "${{ steps.push.outputs.pushed }}" == "true" ]; then
+            echo "pushed=true" >> $GITHUB_OUTPUT
+          else
+            echo "pushed=false" >> $GITHUB_OUTPUT
+          fi
+
+  trigger-release:
+    needs: sync
+    if: needs.sync.outputs.pushed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger release workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: '${{ env.TARGET_WORKFLOW }}',
+              ref: 'master'
+            });
+            console.log('✅ ${{ env.TARGET_WORKFLOW }} workflow triggered successfully!');
