@@ -83,6 +83,11 @@ jobs:
             echo "✅ Conflicts resolved in favor of our files"
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: Exclude .github folder from commit
+        run: |
+          git reset HEAD .github/ 2>/dev/null || true
+          git checkout -- .github/ 2>/dev/null || true
       
       - name: Commit and push changes
         if: steps.merge.outputs.has_changes == 'true'
